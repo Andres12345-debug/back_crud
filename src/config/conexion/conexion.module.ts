@@ -1,43 +1,43 @@
 import { Global, Module } from "@nestjs/common";
-import { Materia } from "src/modelos/materia/materia";
-import { Usuario } from "src/modelos/usuario/usuario";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
 import { SnakeNamingStrategy } from "typeorm-naming-strategies";
+import { Usuario } from "src/modelos/usuario/usuario";
+import { Materia } from "src/modelos/materia/materia";
 
 @Global()
 @Module({
-imports: [],
-providers: [
+  imports: [ConfigModule.forRoot({ isGlobal: true })], // Carga el .env
+  providers: [
     {
-    provide: DataSource,
-    inject: [],
-    useFactory: async () => {
+      provide: DataSource,
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
         try {
-        const poolConexion = new DataSource({
+          const poolConexion = new DataSource({
             type: 'postgres',
-            host: String(process.env.HOST),
-            port: Number(process.env.PORT),
-            username: String(process.env.USER),
-            password: String(process.env.CLAVE),
-            database: String(process.env.BASE_DATOS),
+            host: configService.get<string>('HOST'), // ✅ Corrección
+            port: configService.get<number>('PUERTO'), // ✅ Corrección
+            username: configService.get<string>('USER'), // ✅ Corrección
+            password: configService.get<string>('CLAVE'), // ✅ Corrección
+            database: configService.get<string>('BASE_DATOS'), // ✅ Corrección
             synchronize: true,
             logging: true,
             namingStrategy: new SnakeNamingStrategy(),
-            entities: [Usuario, Materia], // Aquí debes agregar tus entidades
-        });
+            entities: [Usuario, Materia],
+          });
 
-        await poolConexion.initialize();
-        console.log("Conexión a la base de datos exitosa."+String(process.env.DATA_BASE));
+          await poolConexion.initialize();
+          console.log("✅ Conexión a la base de datos exitosa: " + configService.get<string>('BASE_DATOS'));
 
-        return poolConexion;
+          return poolConexion;
         } catch (miError) {
-        console.log("Falló al realizar la conexión");
-        throw miError;
+          console.error("❌ Falló la conexión a la base de datos:", miError);
+          throw miError;
         }
+      },
     },
-    },
-],
-exports: [DataSource],
+  ],
+  exports: [DataSource],
 })
-export class 
-ConexionModule {}
+export class ConexionModule {}
